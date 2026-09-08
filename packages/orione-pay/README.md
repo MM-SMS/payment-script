@@ -16,10 +16,10 @@ NPM-пакет для Next.js: публичный purchase flow без логи�
 С другого Next.js сайта:
 
 ```bash
-npm install git+ssh://git@github.com:podoper/payment-script.git#path:packages/orione-pay
+npm install git+ssh://git@github.com:MM-SMS/payment-script.git#path:packages/orione-pay
 ```
 
-Промпт целиком: [INSTALL.md](../../INSTALL.md) в корне репо `podoper/payment-script`.
+Промпт целиком: [INSTALL.md](../../INSTALL.md) в корне репо `MM-SMS/payment-script`.
 
 ## Vercel / env
 

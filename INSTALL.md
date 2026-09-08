@@ -1,24 +1,24 @@
 # Установка на другой сайт
 
-Репозиторий: [github.com/podoper/payment-script](https://github.com/podoper/payment-script)
+Репозиторий: [github.com/MM-SMS/payment-script](https://github.com/MM-SMS/payment-script)
 
 Пакет живёт в `packages/orione-pay`. На бренд-сайт ставится из GitHub, checkout с нуля не пишется.
 
 ## Промпт — вставить в Cursor на другом Next.js сайте
 
 ```
-Подключи payment module из git@github.com:podoper/payment-script.git
+Подключи payment module из git@github.com:MM-SMS/payment-script.git
 на этот Next.js App Router сайт. Нужен только фронт + тонкие API routes этого же проекта.
 Отдельный бекенд не поднимай.
 
 Сделай так:
 
 1. Установи пакет из подпапки репо:
-   npm install git+ssh://git@github.com:podoper/payment-script.git#path:packages/orione-pay
+   npm install git+ssh://git@github.com:MM-SMS/payment-script.git#path:packages/orione-pay
    Если path-синтаксис не сработает — клонируй репо рядом и ставь
    npm install ../payment-script/packages/orione-pay
    Либо в package.json:
-   "orione-pay": "git+ssh://git@github.com:podoper/payment-script.git#path:packages/orione-pay"
+   "orione-pay": "git+ssh://git@github.com:MM-SMS/payment-script.git#path:packages/orione-pay"
 
 2. В next.config добавь transpilePackages: ["orione-pay"] если Next ругается на ESM.
 
@@ -68,19 +68,19 @@
 ## Команды
 
 ```bash
-npm install git+ssh://git@github.com:podoper/payment-script.git#path:packages/orione-pay
+npm install git+ssh://git@github.com:MM-SMS/payment-script.git#path:packages/orione-pay
 ```
 
 Если GitHub по HTTPS:
 
 ```bash
-npm install git+https://github.com/podoper/payment-script.git#path:packages/orione-pay
+npm install git+https://github.com/MM-SMS/payment-script.git#path:packages/orione-pay
 ```
 
 Запасной вариант — локальный path после clone:
 
 ```bash
-git clone git@github.com:podoper/payment-script.git
+git clone git@github.com:MM-SMS/payment-script.git
 cd your-brand-site
 npm install ../payment-script/packages/orione-pay
 ```

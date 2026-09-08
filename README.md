@@ -1,6 +1,6 @@
 # payment-script
 
-GitHub: [podoper/payment-script](https://github.com/podoper/payment-script)
+GitHub: [MM-SMS/payment-script](https://github.com/MM-SMS/payment-script)
 
 Единый frontend payment layer для бренд-сайтов на Next.js. Подключается как пакет из этого репо: на товары вешается `BuyButton`, а Stripe или кастомный checkout выбирается feature flag в Vercel.
 
@@ -42,7 +42,7 @@ npm run dev
 ## Подключить к бренду
 
 ```bash
-npm install git+ssh://git@github.com:podoper/payment-script.git#path:packages/orione-pay
+npm install git+ssh://git@github.com:MM-SMS/payment-script.git#path:packages/orione-pay
 ```
 
 1. Скопировать env из `apps/demo/.env.example` в Vercel проекта бренда.

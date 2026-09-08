@@ -61,7 +61,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com:podoper/payment-script.git",
+    "url": "git+ssh://git@github.com:MM-SMS/payment-script.git",
     "directory": "packages/orione-pay"
   }
 }
