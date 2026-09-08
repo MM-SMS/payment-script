@@ -1,0 +1,19 @@
+{
+  "name": "orione-pay-workspace",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Brand-agnostic Next.js payment layer: Stripe Checkout or themed custom checkout via feature flag.",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w orione-pay",
+    "dev": "npm run build -w orione-pay && npm run dev -w demo",
+    "test": "npm run test -w orione-pay",
+    "lint": "npm run build -w orione-pay"
+  },
+  "engines": {
+    "node": ">=18.18"
+  }
+}

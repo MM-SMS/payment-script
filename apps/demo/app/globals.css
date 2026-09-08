@@ -1,0 +1,158 @@
+:root {
+  --ink: #1c1712;
+  --paper: #f4efe6;
+  --rule: #d8cfc0;
+  --muted: #7a7166;
+  --accent: #8a5a32;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+body {
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+}
+
+.site-header,
+.site-footer {
+  width: min(1120px, calc(100% - 32px));
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.site-header {
+  padding: 28px 0 18px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.site-footer {
+  padding: 28px 0 48px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.brand-mark {
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.nav-note {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.hero,
+.catalog,
+.pdp {
+  width: min(1120px, calc(100% - 32px));
+  margin: 0 auto;
+}
+
+.hero {
+  padding: 72px 0 48px;
+  display: grid;
+  gap: 18px;
+}
+
+.hero p,
+.pdp-copy,
+.meta {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.hero h1,
+.pdp h1 {
+  margin: 0;
+  font-weight: 500;
+  font-size: clamp(42px, 7vw, 84px);
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+}
+
+.catalog {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  padding-bottom: 72px;
+}
+
+.product-card,
+.pdp-visual {
+  background:
+    radial-gradient(circle at 20% 15%, rgba(138, 90, 50, 0.22), transparent 36%),
+    linear-gradient(180deg, #fffaf2 0%, #efe4d3 100%);
+  border: 1px solid var(--rule);
+  min-height: 280px;
+  text-decoration: none;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.product-card h2,
+.pdp h2 {
+  margin: 0 0 8px;
+  font-size: 28px;
+  font-weight: 500;
+}
+
+.pdp {
+  padding: 48px 0 80px;
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 40px;
+}
+
+.pdp-visual {
+  min-height: 520px;
+}
+
+.price {
+  font-size: 28px;
+  margin: 18px 0 24px;
+}
+
+.flow-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+@media (max-width: 800px) {
+  .catalog,
+  .pdp {
+    grid-template-columns: 1fr;
+  }
+
+  .pdp-visual {
+    min-height: 320px;
+  }
+}

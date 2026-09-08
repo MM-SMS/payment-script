@@ -1,0 +1,14 @@
+node_modules
+.next
+.turbo
+.vercel
+.pnpm-store
+.env
+.env.local
+.env.*.local
+*.tsbuildinfo
+.DS_Store
+coverage
+apps/**/dist
+!packages/orione-pay/dist
+!packages/orione-pay/dist/**
