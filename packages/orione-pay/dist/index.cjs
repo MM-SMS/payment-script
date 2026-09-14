@@ -3,7 +3,8 @@
 // src/types.ts
 var DEFAULT_API_PATHS = {
   checkout: "/api/orione-pay/checkout",
-  custom: "/api/orione-pay/custom"
+  custom: "/api/orione-pay/custom",
+  bin: "/api/orione-pay/bin"
 };
 var DEFAULT_URLS = {
   success: "/purchase/success",
@@ -87,6 +88,38 @@ function toPublicPaymentConfig(config) {
 }
 function definePaymentConfig(input) {
   return createServerPaymentConfig(input);
+}
+
+// src/bin.ts
+var LOCAL_BINS = {
+  "400000": { scheme: "visa", bank: "Stripe Test", country: "United States" },
+  "400005": { scheme: "visa", type: "debit", bank: "Stripe Test", country: "United States" },
+  "424242": { scheme: "visa", bank: "Stripe Test", country: "United States" },
+  "555555": { scheme: "mastercard", bank: "Stripe Test", country: "United States" },
+  "520082": { scheme: "mastercard", bank: "Stripe Test", country: "United States" },
+  "378282": { scheme: "amex", bank: "Stripe Test", country: "United States" },
+  "371449": { scheme: "amex", bank: "Stripe Test", country: "United States" },
+  "601111": { scheme: "discover", bank: "Stripe Test", country: "United States" }
+};
+function normalizeBin(value) {
+  const digits = value.replace(/\D/g, "");
+  if (digits.length < 6) return void 0;
+  return digits.slice(0, 8);
+}
+function lookupLocalBin(bin) {
+  const eight = bin.slice(0, 8);
+  const six = bin.slice(0, 6);
+  const match = LOCAL_BINS[eight] ?? LOCAL_BINS[six];
+  if (!match) return void 0;
+  return { bin: six, source: "local", ...match };
+}
+function formatBinIssuer(info, fallbackBrand) {
+  if (!info?.bank && !info?.country && !info?.type) return fallbackBrand;
+  const parts = [fallbackBrand];
+  if (info.bank) parts.push(info.bank);
+  else if (info.country) parts.push(info.country);
+  if (info.type && !info.bank) parts.push(info.type);
+  return parts.join(" \xB7 ");
 }
 
 // src/countries.ts
@@ -281,12 +314,15 @@ exports.createConfirmationId = createConfirmationId;
 exports.createServerPaymentConfig = createServerPaymentConfig;
 exports.definePaymentConfig = definePaymentConfig;
 exports.detectCardBrand = detectCardBrand;
+exports.formatBinIssuer = formatBinIssuer;
 exports.formatCardNumber = formatCardNumber;
 exports.formatExpiry = formatExpiry;
 exports.formatMoney = formatMoney;
 exports.getProduct = getProduct;
 exports.hasFieldErrors = hasFieldErrors;
+exports.lookupLocalBin = lookupLocalBin;
 exports.luhnCheck = luhnCheck;
+exports.normalizeBin = normalizeBin;
 exports.onlyDigits = onlyDigits;
 exports.parseExpiry = parseExpiry;
 exports.requireProduct = requireProduct;

@@ -7,6 +7,12 @@ export {
   resolvePaymentFlow,
   toPublicPaymentConfig,
 } from "./config";
+export {
+  formatBinIssuer,
+  lookupLocalBin,
+  normalizeBin,
+} from "./bin";
+export type { BinInfo } from "./bin";
 export { COUNTRIES } from "./countries";
 export type { CountryOption } from "./countries";
 export {

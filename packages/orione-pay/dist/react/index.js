@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useState, useCallback, useMemo, useContext, Suspense } from 'react';
+import { createContext, useState, useCallback, useMemo, useContext, useEffect, Suspense } from 'react';
 import { jsx, jsxs } from 'react/jsx-runtime';
 import { useSearchParams } from 'next/navigation';
 
@@ -105,6 +105,41 @@ function BuyButton({
   ] });
 }
 
+// src/bin.ts
+function normalizeBin(value) {
+  const digits = value.replace(/\D/g, "");
+  if (digits.length < 6) return void 0;
+  return digits.slice(0, 8);
+}
+function formatBinIssuer(info, fallbackBrand) {
+  if (!info?.bank && !info?.country && !info?.type) return fallbackBrand;
+  const parts = [fallbackBrand];
+  if (info.bank) parts.push(info.bank);
+  else if (info.country) parts.push(info.country);
+  if (info.type && !info.bank) parts.push(info.type);
+  return parts.join(" \xB7 ");
+}
+
+// src/format.ts
+function formatMoney(amount, currency, locale = "en-US") {
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: currency.toUpperCase()
+  }).format(amount / 100);
+}
+function formatCardNumber(value) {
+  const digits = value.replace(/\D/g, "").slice(0, 19);
+  return digits.replace(/(\d{4})(?=\d)/g, "$1 ").trim();
+}
+function formatExpiry(value) {
+  const digits = value.replace(/\D/g, "").slice(0, 4);
+  if (digits.length <= 2) return digits;
+  return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+}
+function onlyDigits(value, maxLength) {
+  return value.replace(/\D/g, "").slice(0, maxLength);
+}
+
 // src/validation/card.ts
 function luhnCheck(cardNumber) {
   const digits = cardNumber.replace(/\D/g, "");
@@ -177,25 +212,32 @@ function parseExpiry(expiry) {
   const [month = "", year = ""] = expiry.split("/");
   return { month, year };
 }
-
-// src/format.ts
-function formatMoney(amount, currency, locale = "en-US") {
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency: currency.toUpperCase()
-  }).format(amount / 100);
-}
-function formatCardNumber(value) {
-  const digits = value.replace(/\D/g, "").slice(0, 19);
-  return digits.replace(/(\d{4})(?=\d)/g, "$1 ").trim();
-}
-function formatExpiry(value) {
-  const digits = value.replace(/\D/g, "").slice(0, 4);
-  if (digits.length <= 2) return digits;
-  return `${digits.slice(0, 2)}/${digits.slice(2)}`;
-}
-function onlyDigits(value, maxLength) {
-  return value.replace(/\D/g, "").slice(0, maxLength);
+function useBinLookup(cardNumber, endpoint) {
+  const [info, setInfo] = useState(null);
+  useEffect(() => {
+    const bin = normalizeBin(cardNumber);
+    if (!bin || !endpoint) {
+      setInfo(null);
+      return;
+    }
+    setInfo((current) => current && bin.startsWith(current.bin) ? current : null);
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      void fetch(`${endpoint}?bin=${encodeURIComponent(bin)}`).then(async (response) => {
+        if (!response.ok) return null;
+        return await response.json();
+      }).then((data) => {
+        if (!cancelled) setInfo(data?.bin ? data : null);
+      }).catch(() => {
+        if (!cancelled) setInfo(null);
+      });
+    }, 400);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [cardNumber, endpoint]);
+  return info;
 }
 function CardFields({
   cardNumber,
@@ -206,7 +248,11 @@ function CardFields({
   disabled,
   onChange
 }) {
+  const { api } = usePaymentConfig();
   const brand = detectCardBrand(cardNumber);
+  const brandLabel = cardBrandLabel(brand);
+  const binInfo = useBinLookup(cardNumber, api.bin);
+  const issuerLabel = formatBinIssuer(binInfo, brandLabel);
   function handleCardNumber(event) {
     onChange("cardNumber", formatCardNumber(event.target.value));
   }
@@ -233,8 +279,9 @@ function CardFields({
             "aria-invalid": Boolean(errors.cardNumber)
           }
         ),
-        /* @__PURE__ */ jsx("span", { className: "op-card-brand", children: cardBrandLabel(brand) })
+        /* @__PURE__ */ jsx("span", { className: "op-card-brand", children: brandLabel })
       ] }),
+      binInfo?.bank || binInfo?.country ? /* @__PURE__ */ jsx("p", { className: "op-card-meta", "aria-live": "polite", children: issuerLabel }) : null,
       errors.cardNumber ? /* @__PURE__ */ jsx("em", { className: "op-field-error", children: errors.cardNumber }) : null
     ] }),
     /* @__PURE__ */ jsxs("div", { className: "op-field-grid", children: [
@@ -619,4 +666,4 @@ function PaymentCancel({ href = "/" }) {
   );
 }
 
-export { BuyButton, CardFields, Confirmation, CustomCheckout, OrderSummary, PaymentCancel, PaymentProvider, PaymentResult, PaymentSuccess, usePayment, usePaymentConfig };
+export { BuyButton, CardFields, Confirmation, CustomCheckout, OrderSummary, PaymentCancel, PaymentProvider, PaymentResult, PaymentSuccess, useBinLookup, usePayment, usePaymentConfig };

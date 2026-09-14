@@ -38,6 +38,9 @@ STRIPE_ACCOUNT_ID=acct_xxx
 
 # Опционально, если используете готовый Price в Stripe
 STRIPE_PRICE_ID=price_xxx
+
+# Optional paid BIN database
+BINCODES_API_KEY=
 ```
 
 `STRIPE_ACCOUNT_ID` — Stripe connected / sub-account этого бренда. Пакет всегда создаёт Checkout Session только с ключами и account id **текущего** бренда. Случайно отправить оплату в чужой Stripe account нельзя: другой бренд живёт в другом деплое и другом env.
@@ -133,6 +136,15 @@ import { serverPaymentConfig } from "../../../../lib/payment";
 export const { POST } = createCustomPaymentRouteHandlers(() => serverPaymentConfig);
 ```
 
+```ts
+// app/api/orione-pay/bin/route.ts
+import { createBinLookupRouteHandlers } from "orione-pay/next";
+
+export const { GET } = createBinLookupRouteHandlers();
+```
+
+Custom checkout shows the issuing bank from a BIN lookup (first 6–8 digits only). Default source is [binlist.net](https://binlist.net); optional `BINCODES_API_KEY` uses a paid database. Stripe test cards (`4242…`) resolve locally as `Stripe Test`.
+
 ### 5. Custom checkout page
 
 ```tsx
@@ -202,7 +214,7 @@ Product page → BuyButton → POST /api/orione-pay/checkout
 2. Заполнить env в Vercel
 3. Описать products / theme в `definePaymentConfig`
 4. Повесить `BuyButton` на товар
-5. Добавить два API route и `/payment`
+5. Добавить API routes (`checkout`, `custom`, `bin`) и `/payment`
 
 Отдельную checkout-логику писать не нужно.
 
@@ -217,6 +229,7 @@ import {
 
 import { PaymentProvider, BuyButton, CustomCheckout } from "orione-pay/react";
 import {
+  createBinLookupRouteHandlers,
   createCheckoutRouteHandlers,
   createCustomPaymentRouteHandlers,
 } from "orione-pay/next";

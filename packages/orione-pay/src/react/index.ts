@@ -8,3 +8,4 @@ export { CustomCheckout } from "./CustomCheckout";
 export { PaymentProvider, usePayment, usePaymentConfig } from "./context";
 export { OrderSummary } from "./OrderSummary";
 export { PaymentCancel, PaymentResult, PaymentSuccess } from "./PaymentResult";
+export { useBinLookup } from "./useBinLookup";

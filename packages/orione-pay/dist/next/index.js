@@ -1,6 +1,115 @@
 import Stripe from 'stripe';
 
-// src/next/create-checkout-handlers.ts
+// src/bin.ts
+var LOCAL_BINS = {
+  "400000": { scheme: "visa", bank: "Stripe Test", country: "United States" },
+  "400005": { scheme: "visa", type: "debit", bank: "Stripe Test", country: "United States" },
+  "424242": { scheme: "visa", bank: "Stripe Test", country: "United States" },
+  "555555": { scheme: "mastercard", bank: "Stripe Test", country: "United States" },
+  "520082": { scheme: "mastercard", bank: "Stripe Test", country: "United States" },
+  "378282": { scheme: "amex", bank: "Stripe Test", country: "United States" },
+  "371449": { scheme: "amex", bank: "Stripe Test", country: "United States" },
+  "601111": { scheme: "discover", bank: "Stripe Test", country: "United States" }
+};
+function normalizeBin(value) {
+  const digits = value.replace(/\D/g, "");
+  if (digits.length < 6) return void 0;
+  return digits.slice(0, 8);
+}
+function lookupLocalBin(bin) {
+  const eight = bin.slice(0, 8);
+  const six = bin.slice(0, 6);
+  const match = LOCAL_BINS[eight] ?? LOCAL_BINS[six];
+  if (!match) return void 0;
+  return { bin: six, source: "local", ...match };
+}
+
+// src/bin-lookup.ts
+var cache = /* @__PURE__ */ new Map();
+async function fetchJson(url, init) {
+  const response = await fetch(url, {
+    ...init,
+    signal: AbortSignal.timeout(2500)
+  });
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`BIN lookup failed (${response.status})`);
+  return response.json();
+}
+async function lookupBinlist(bin) {
+  const payload = await fetchJson(`https://lookup.binlist.net/${bin}`, {
+    headers: { "Accept-Version": "3" }
+  });
+  if (!payload) return void 0;
+  return {
+    bin: bin.slice(0, 6),
+    scheme: payload.scheme,
+    brand: payload.brand,
+    type: payload.type,
+    bank: payload.bank?.name || void 0,
+    country: payload.country?.name || void 0,
+    prepaid: payload.prepaid,
+    source: "binlist"
+  };
+}
+async function lookupBincodes(bin, apiKey) {
+  const payload = await fetchJson(
+    `https://api.bincodes.com/bin/?format=json&api_key=${encodeURIComponent(apiKey)}&bin=${bin.slice(0, 6)}`
+  );
+  if (!payload || payload.valid === "false") return void 0;
+  return {
+    bin: bin.slice(0, 6),
+    scheme: payload.card?.toLowerCase(),
+    type: payload.type?.toLowerCase(),
+    bank: payload.bank || void 0,
+    country: payload.country || void 0,
+    source: "bincodes"
+  };
+}
+async function lookupBin(cardOrBin) {
+  const bin = normalizeBin(cardOrBin);
+  if (!bin) return void 0;
+  const cached = cache.get(bin) ?? cache.get(bin.slice(0, 6));
+  if (cached) return cached;
+  const local = lookupLocalBin(bin);
+  if (local?.bank) {
+    cache.set(bin, local);
+    return local;
+  }
+  const apiKey = process.env.BINCODES_API_KEY;
+  try {
+    const remote = apiKey ? await lookupBincodes(bin, apiKey) : await lookupBinlist(bin);
+    const resolved = remote ?? local;
+    if (resolved) cache.set(bin, resolved);
+    return resolved;
+  } catch {
+    if (local) cache.set(bin, local);
+    return local;
+  }
+}
+
+// src/next/create-bin-handlers.ts
+function json(body, status = 200) {
+  return Response.json(body, { status });
+}
+function createBinLookupRouteHandlers() {
+  return {
+    async GET(request) {
+      const raw = new URL(request.url).searchParams.get("bin") ?? "";
+      const bin = normalizeBin(raw);
+      if (!bin) {
+        return json({ error: "Provide 6\u20138 card digits (BIN only)." }, 400);
+      }
+      if (!/^\d{6,8}$/.test(raw.replace(/\D/g, "").slice(0, 8))) {
+        return json({ error: "BIN must be numeric." }, 400);
+      }
+      const info = await lookupBin(bin);
+      if (!info) {
+        return json({ bin: bin.slice(0, 6) });
+      }
+      return json(info);
+    }
+  };
+}
 
 // src/config.ts
 function getProduct(products, productId) {
@@ -15,7 +124,7 @@ function requireProduct(products, productId) {
 }
 
 // src/next/create-checkout-handlers.ts
-function json(body, status = 200) {
+function json2(body, status = 200) {
   return Response.json(body, { status });
 }
 function resolveAbsoluteUrl(baseUrl, path, extra) {
@@ -32,7 +141,7 @@ function createCheckoutRouteHandlers(getConfig) {
         const config = getConfig();
         const body = await request.json();
         if (!body?.productId) {
-          return json({ error: "productId is required" }, 400);
+          return json2({ error: "productId is required" }, 400);
         }
         const product = requireProduct(config.products, body.productId);
         const origin = new URL(request.url).origin;
@@ -43,10 +152,10 @@ function createCheckoutRouteHandlers(getConfig) {
             returnUrl,
             brand: config.brandId
           });
-          return json({ url, flow: "custom" });
+          return json2({ url, flow: "custom" });
         }
         if (!config.stripe?.secretKey) {
-          return json(
+          return json2(
             {
               error: `Stripe is enabled for ${config.brandName}, but STRIPE_SECRET_KEY is not set.`,
               code: "missing_stripe_secret"
@@ -100,12 +209,12 @@ function createCheckoutRouteHandlers(getConfig) {
           requestOptions
         );
         if (!session.url) {
-          return json({ error: "Stripe did not return a checkout URL" }, 502);
+          return json2({ error: "Stripe did not return a checkout URL" }, 502);
         }
-        return json({ url: session.url, flow: "stripe" });
+        return json2({ url: session.url, flow: "stripe" });
       } catch (caught) {
         if (caught instanceof Stripe.errors.StripeError) {
-          return json(
+          return json2(
             {
               error: caught.message,
               code: caught.code,
@@ -114,7 +223,7 @@ function createCheckoutRouteHandlers(getConfig) {
             400
           );
         }
-        return json(
+        return json2(
           {
             error: caught instanceof Error ? caught.message : "Unable to start checkout"
           },
@@ -155,7 +264,7 @@ function validatePostalCode(postalCode) {
 }
 
 // src/next/create-custom-handlers.ts
-function json2(body, status = 200) {
+function json3(body, status = 200) {
   return Response.json(body, { status });
 }
 function createCustomPaymentRouteHandlers(getConfig) {
@@ -170,7 +279,7 @@ function createCustomPaymentRouteHandlers(getConfig) {
         const addressError = validateAddress(body.billing?.address ?? "");
         const postalError = validatePostalCode(body.billing?.postalCode ?? "");
         if (emailError || countryError || addressError || postalError) {
-          return json2(
+          return json3(
             {
               error: emailError ?? countryError ?? addressError ?? postalError ?? "Invalid checkout data"
             },
@@ -178,16 +287,16 @@ function createCustomPaymentRouteHandlers(getConfig) {
           );
         }
         if (!body.card?.last4 || body.card.last4.length !== 4) {
-          return json2({ error: "Card summary is incomplete" }, 400);
+          return json3({ error: "Card summary is incomplete" }, 400);
         }
         await new Promise((resolve) => setTimeout(resolve, 700));
-        return json2({
+        return json3({
           ok: true,
           confirmationId: createConfirmationId(config.brandId),
           message: "Thank you. We\u2019ve received your order request. Our support team will review the details and contact you at the email provided regarding the next steps."
         });
       } catch (caught) {
-        return json2(
+        return json3(
           {
             error: caught instanceof Error ? caught.message : "Unable to process custom payment"
           },
@@ -198,4 +307,4 @@ function createCustomPaymentRouteHandlers(getConfig) {
   };
 }
 
-export { createCheckoutRouteHandlers, createCustomPaymentRouteHandlers };
+export { createBinLookupRouteHandlers, createCheckoutRouteHandlers, createCustomPaymentRouteHandlers };

@@ -63,9 +63,10 @@ STRIPE_SECRET_KEY=
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
 STRIPE_ACCOUNT_ID=           # connected account только этого бренда
 STRIPE_PRICE_ID=             # опционально
+BINCODES_API_KEY=            # опционально, платная BIN-база
 ```
 
-Секреты не попадают в клиентский бандл. Custom flow не отправляет полный номер карты на сервер — только last4 и billing.
+Секреты не попадают в клиентский бандл. Custom flow не отправляет полный номер карты на сервер — только last4, billing и BIN (6–8 цифр) для названия банка.
 
 ## Переключение провайдера
 

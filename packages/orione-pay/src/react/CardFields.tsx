@@ -1,9 +1,12 @@
 "use client";
 
 import type { ChangeEvent } from "react";
-import { cardBrandLabel, detectCardBrand } from "../validation/card";
+import { formatBinIssuer } from "../bin";
 import { formatCardNumber, formatExpiry, onlyDigits } from "../format";
+import { cardBrandLabel, detectCardBrand } from "../validation/card";
 import type { FieldErrors } from "../types";
+import { usePaymentConfig } from "./context";
+import { useBinLookup } from "./useBinLookup";
 
 interface CardFieldsProps {
   cardNumber: string;
@@ -24,7 +27,11 @@ export function CardFields({
   disabled,
   onChange,
 }: CardFieldsProps) {
+  const { api } = usePaymentConfig();
   const brand = detectCardBrand(cardNumber);
+  const brandLabel = cardBrandLabel(brand);
+  const binInfo = useBinLookup(cardNumber, api.bin);
+  const issuerLabel = formatBinIssuer(binInfo, brandLabel);
 
   function handleCardNumber(event: ChangeEvent<HTMLInputElement>) {
     onChange("cardNumber", formatCardNumber(event.target.value));
@@ -53,8 +60,13 @@ export function CardFields({
             onChange={handleCardNumber}
             aria-invalid={Boolean(errors.cardNumber)}
           />
-          <span className="op-card-brand">{cardBrandLabel(brand)}</span>
+          <span className="op-card-brand">{brandLabel}</span>
         </div>
+        {binInfo?.bank || binInfo?.country ? (
+          <p className="op-card-meta" aria-live="polite">
+            {issuerLabel}
+          </p>
+        ) : null}
         {errors.cardNumber ? <em className="op-field-error">{errors.cardNumber}</em> : null}
       </label>
 

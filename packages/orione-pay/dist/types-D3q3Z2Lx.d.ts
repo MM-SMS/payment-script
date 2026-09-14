@@ -30,6 +30,7 @@ interface PaymentUrls {
 interface PaymentApiPaths {
     checkout: string;
     custom: string;
+    bin: string;
 }
 interface StripePublicConfig {
     publishableKey: string;

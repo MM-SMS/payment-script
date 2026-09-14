@@ -35,6 +35,7 @@
    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
    STRIPE_ACCOUNT_ID=
    STRIPE_PRICE_ID=
+   BINCODES_API_KEY=   # опционально, иначе binlist.net
 
 5. В app/layout.tsx:
    import "orione-pay/styles.css"
@@ -50,6 +51,8 @@
      export const { POST } = createCheckoutRouteHandlers(() => serverPaymentConfig)
    app/api/orione-pay/custom/route.ts
      export const { POST } = createCustomPaymentRouteHandlers(() => serverPaymentConfig)
+   app/api/orione-pay/bin/route.ts
+     export const { GET } = createBinLookupRouteHandlers()
 
 8. app/payment/page.tsx — <CustomCheckout />
    app/purchase/success/page.tsx — <PaymentSuccess href="/" />
@@ -97,6 +100,7 @@ app/purchase/success/page.tsx
 app/purchase/cancel/page.tsx
 app/api/orione-pay/checkout/route.ts
 app/api/orione-pay/custom/route.ts
+app/api/orione-pay/bin/route.ts
 ```
 
 На товар: цена и `<BuyButton productId="..." />`.

@@ -34,6 +34,7 @@ export interface PaymentUrls {
 export interface PaymentApiPaths {
   checkout: string;
   custom: string;
+  bin: string;
 }
 
 export interface StripePublicConfig {
@@ -136,6 +137,7 @@ export interface FieldErrors {
 export const DEFAULT_API_PATHS: PaymentApiPaths = {
   checkout: "/api/orione-pay/checkout",
   custom: "/api/orione-pay/custom",
+  bin: "/api/orione-pay/bin",
 };
 
 export const DEFAULT_URLS: PaymentUrls = {

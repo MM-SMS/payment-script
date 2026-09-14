@@ -176,9 +176,19 @@
   right: 12px;
   top: 50%;
   transform: translateY(-50%);
+  max-width: 42%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 12px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  color: var(--op-muted);
+}
+
+.op-card-meta {
+  margin: 0;
+  font-size: 12px;
   color: var(--op-muted);
 }
 

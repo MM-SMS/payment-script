@@ -1,4 +1,8 @@
-import { S as ServerPaymentConfig } from '../types-B_cE4ZYQ.cjs';
+import { S as ServerPaymentConfig } from '../types-D3q3Z2Lx.cjs';
+
+declare function createBinLookupRouteHandlers(): {
+    GET(request: Request): Promise<Response>;
+};
 
 type ConfigFactory$1 = () => ServerPaymentConfig;
 declare function createCheckoutRouteHandlers(getConfig: ConfigFactory$1): {
@@ -10,4 +14,4 @@ declare function createCustomPaymentRouteHandlers(getConfig: ConfigFactory): {
     POST(request: Request): Promise<Response>;
 };
 
-export { createCheckoutRouteHandlers, createCustomPaymentRouteHandlers };
+export { createBinLookupRouteHandlers, createCheckoutRouteHandlers, createCustomPaymentRouteHandlers };

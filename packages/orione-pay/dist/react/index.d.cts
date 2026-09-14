@@ -1,6 +1,7 @@
 import * as react from 'react';
 import { ButtonHTMLAttributes, ReactNode } from 'react';
-import { F as FieldErrors, P as PublicPaymentConfig, a as Product } from '../types-B_cE4ZYQ.cjs';
+import { F as FieldErrors, P as PublicPaymentConfig, a as Product } from '../types-D3q3Z2Lx.cjs';
+import { B as BinInfo } from '../bin-B3UV-FYt.cjs';
 
 interface BuyButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "onClick"> {
     productId: string;
@@ -69,4 +70,6 @@ declare function PaymentCancel({ href }: {
     href?: string;
 }): react.JSX.Element;
 
-export { BuyButton, type BuyButtonProps, CardFields, Confirmation, CustomCheckout, OrderSummary, PaymentCancel, PaymentProvider, PaymentResult, PaymentSuccess, usePayment, usePaymentConfig };
+declare function useBinLookup(cardNumber: string, endpoint?: string): BinInfo | null;
+
+export { BuyButton, type BuyButtonProps, CardFields, Confirmation, CustomCheckout, OrderSummary, PaymentCancel, PaymentProvider, PaymentResult, PaymentSuccess, useBinLookup, usePayment, usePaymentConfig };
