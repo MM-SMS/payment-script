@@ -1,5 +1,5 @@
-import { CustomCheckout } from "orione-pay/react";
+import { CheckoutPage } from "orione-pay/react";
 
 export default function PaymentPage() {
-  return <CustomCheckout />;
+  return <CheckoutPage />;
 }

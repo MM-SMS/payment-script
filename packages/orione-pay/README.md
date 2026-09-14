@@ -6,7 +6,7 @@ NPM-пакет для Next.js: публичный purchase flow без логи�
 
 - `BuyButton` на любой товарной странице
 - серверный роутер, который решает, куда вести CTA
-- Stripe Checkout на connected / brand account
+- Stripe Payment Element на домене бренда (страница в стиле Stripe Checkout)
 - брендированный custom checkout с валидацией карты и эмуляцией оплаты
 - тема бренда через CSS-переменные
 - секреты только из env (Vercel)
@@ -116,7 +116,7 @@ import { BuyButton } from "orione-pay/react";
 <BuyButton productId="no-01">Buy / Purchase</BuyButton>
 ```
 
-CTA всегда один. Router сам отправит пользователя в Stripe или на `/payment`.
+CTA всегда один. Router отправит пользователя на `/payment` этого сайта — Stripe Elements или custom form.
 
 ### 4. API routes
 
@@ -145,14 +145,22 @@ export const { GET } = createBinLookupRouteHandlers();
 
 Custom checkout shows the issuing bank from a BIN lookup (first 6–8 digits only). Default source is [binlist.net](https://binlist.net); optional `BINCODES_API_KEY` uses a paid database. Stripe test cards (`4242…`) resolve locally as `Stripe Test`.
 
-### 5. Custom checkout page
+```ts
+// app/api/orione-pay/intent/route.ts
+import { createStripeIntentRouteHandlers } from "orione-pay/next";
+import { serverPaymentConfig } from "../../../../lib/payment";
+
+export const { POST } = createStripeIntentRouteHandlers(() => serverPaymentConfig);
+```
+
+### 5. Checkout page
 
 ```tsx
 // app/payment/page.tsx
-import { CustomCheckout } from "orione-pay/react";
+import { CheckoutPage } from "orione-pay/react";
 
 export default function PaymentPage() {
-  return <CustomCheckout />;
+  return <CheckoutPage />;
 }
 ```
 
@@ -162,13 +170,13 @@ export default function PaymentPage() {
 
 ```
 Product page → BuyButton → POST /api/orione-pay/checkout
-                              ├─ PAYMENT_FLOW=stripe → Stripe Checkout Session
-                              └─ PAYMENT_FLOW=custom → /payment?product=…&returnUrl=…
+                              ├─ PAYMENT_FLOW=stripe → /payment (Stripe Elements, текущий домен)
+                              └─ PAYMENT_FLOW=custom → /payment (кастомная форма)
 ```
 
 Для Stripe:
 
-`Product → Buy → Stripe Checkout → success/cancel → brand`
+`Product → Buy → /payment (вид Stripe Checkout, слева ваш домен) → Pay → success`
 
 Для custom:
 
@@ -202,11 +210,13 @@ Product page → BuyButton → POST /api/orione-pay/checkout
 
 ## Stripe
 
-Пакет создаёт Checkout Session через secret key бренда. Если задан `STRIPE_ACCOUNT_ID`, запрос идёт в connected account.
+При `PAYMENT_FLOW=stripe` Buy открывает `/payment` **на текущем домене**, не `checkout.stripe.com`.
 
-Ошибки неактивированного аккаунта, refund и ограничения верификации отдаются текстом Stripe as-is — UI показывает фактический ответ провайдера.
+Слева — `window.location.host` (например `vela.com` или `localhost:3000`), сумма и товар. Справа — email и Stripe Payment Element в стиле Stripe Checkout.
 
-Можно либо передать `stripePriceId`, либо оставить `amount + currency` — тогда session собирается через `price_data`.
+Пакет создаёт PaymentIntent через secret key бренда. Если задан `STRIPE_ACCOUNT_ID`, Elements и Intent идут в connected account этого бренда.
+
+Ошибки неактивированного аккаунта и отказ карты отдаются текстом Stripe as-is.
 
 ## Новый бренд
 
@@ -214,7 +224,7 @@ Product page → BuyButton → POST /api/orione-pay/checkout
 2. Заполнить env в Vercel
 3. Описать products / theme в `definePaymentConfig`
 4. Повесить `BuyButton` на товар
-5. Добавить API routes (`checkout`, `custom`, `bin`) и `/payment`
+5. Добавить API routes (`checkout`, `custom`, `bin`, `intent`) и `/payment`
 
 Отдельную checkout-логику писать не нужно.
 
@@ -227,11 +237,12 @@ import {
   resolvePaymentFlow,
 } from "orione-pay";
 
-import { PaymentProvider, BuyButton, CustomCheckout } from "orione-pay/react";
+import { PaymentProvider, BuyButton, CheckoutPage } from "orione-pay/react";
 import {
   createBinLookupRouteHandlers,
   createCheckoutRouteHandlers,
   createCustomPaymentRouteHandlers,
+  createStripeIntentRouteHandlers,
 } from "orione-pay/next";
 import "orione-pay/styles.css";
 ```

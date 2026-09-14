@@ -31,6 +31,7 @@ interface PaymentApiPaths {
     checkout: string;
     custom: string;
     bin: string;
+    intent: string;
 }
 interface StripePublicConfig {
     publishableKey: string;
@@ -103,6 +104,12 @@ interface CustomPaymentResponse {
     confirmationId: string;
     message: string;
 }
+interface StripeIntentResponse {
+    clientSecret: string;
+    paymentIntentId: string;
+    amount: number;
+    currency: string;
+}
 type CardBrand = "visa" | "mastercard" | "amex" | "discover" | "diners" | "jcb" | "unionpay" | "unknown";
 interface FieldErrors {
     [field: string]: string | undefined;
@@ -111,4 +118,4 @@ declare const DEFAULT_API_PATHS: PaymentApiPaths;
 declare const DEFAULT_URLS: PaymentUrls;
 declare const DEFAULT_THEME: BrandTheme;
 
-export { type BillingDetails as B, type CreatePaymentConfigInput as C, DEFAULT_API_PATHS as D, type FieldErrors as F, type PublicPaymentConfig as P, type ServerPaymentConfig as S, type Product as a, type PaymentFlow as b, type CardBrand as c, type BrandTheme as d, type CardSummary as e, type CheckoutRequest as f, type CheckoutResponse as g, type CustomPaymentRequest as h, type CustomPaymentResponse as i, DEFAULT_THEME as j, DEFAULT_URLS as k, type PaymentApiPaths as l, type PaymentErrorBody as m, type PaymentUrls as n, type StripePublicConfig as o, type StripeServerConfig as p };
+export { type BillingDetails as B, type CreatePaymentConfigInput as C, DEFAULT_API_PATHS as D, type FieldErrors as F, type PublicPaymentConfig as P, type ServerPaymentConfig as S, type Product as a, type PaymentFlow as b, type CardBrand as c, type BrandTheme as d, type CardSummary as e, type CheckoutRequest as f, type CheckoutResponse as g, type CustomPaymentRequest as h, type CustomPaymentResponse as i, DEFAULT_THEME as j, DEFAULT_URLS as k, type PaymentApiPaths as l, type PaymentErrorBody as m, type PaymentUrls as n, type StripeIntentResponse as o, type StripePublicConfig as p, type StripeServerConfig as q };

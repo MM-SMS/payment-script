@@ -1,4 +1,3 @@
-import Stripe from "stripe";
 import { requireProduct } from "../config";
 import type {
   CheckoutRequest,
@@ -35,96 +34,34 @@ export function createCheckoutRouteHandlers(getConfig: ConfigFactory) {
         const origin = new URL(request.url).origin;
         const returnUrl = body.returnUrl || `${origin}/`;
 
-        if (config.flow === "custom") {
-          const url = resolveAbsoluteUrl(origin, config.urls.checkout, {
-            product: product.id,
-            returnUrl,
-            brand: config.brandId,
-          });
-          return json({ url, flow: "custom" });
-        }
-
-        if (!config.stripe?.secretKey) {
-          return json(
-            {
-              error: `Stripe is enabled for ${config.brandName}, but STRIPE_SECRET_KEY is not set.`,
-              code: "missing_stripe_secret",
-            },
-            400,
-          );
-        }
-
-        const stripe = new Stripe(config.stripe.secretKey);
-        const requestOptions = config.stripe.accountId
-          ? { stripeAccount: config.stripe.accountId }
-          : undefined;
-
-        const successUrl = resolveAbsoluteUrl(origin, config.urls.success, {
-          session_id: "{CHECKOUT_SESSION_ID}",
-          product: product.id,
-          brand: config.brandId,
-        }).replace("%7BCHECKOUT_SESSION_ID%7D", "{CHECKOUT_SESSION_ID}");
-
-        const cancelUrl = resolveAbsoluteUrl(origin, config.urls.cancel, {
-          product: product.id,
-          brand: config.brandId,
-          returnUrl,
-        });
-
-        const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = product.stripePriceId
-          ? [{ price: product.stripePriceId, quantity: 1 }]
-          : [
+        if (config.flow === "stripe") {
+          if (!config.stripe?.secretKey) {
+            return json(
               {
-                quantity: 1,
-                price_data: {
-                  currency: product.currency,
-                  unit_amount: product.amount,
-                  product_data: {
-                    name: product.name,
-                    description: product.description,
-                    images: product.imageUrl ? [product.imageUrl] : undefined,
-                  },
-                },
+                error: `Stripe is enabled for ${config.brandName}, but STRIPE_SECRET_KEY is not set.`,
+                code: "missing_stripe_secret",
               },
-            ];
-
-        const session = await stripe.checkout.sessions.create(
-          {
-            mode: "payment",
-            line_items: lineItems,
-            success_url: successUrl,
-            cancel_url: cancelUrl,
-            metadata: {
-              brandId: config.brandId,
-              productId: product.id,
-            },
-            payment_intent_data: {
-              metadata: {
-                brandId: config.brandId,
-                productId: product.id,
+              400,
+            );
+          }
+          if (!config.stripe.publishableKey) {
+            return json(
+              {
+                error: `Stripe is enabled for ${config.brandName}, but NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is not set.`,
+                code: "missing_stripe_publishable",
               },
-            },
-          },
-          requestOptions,
-        );
-
-        if (!session.url) {
-          return json({ error: "Stripe did not return a checkout URL" }, 502);
+              400,
+            );
+          }
         }
 
-        return json({ url: session.url, flow: "stripe" });
+        const url = resolveAbsoluteUrl(origin, config.urls.checkout, {
+          product: product.id,
+          returnUrl,
+          brand: config.brandId,
+        });
+        return json({ url, flow: config.flow });
       } catch (caught) {
-        if (caught instanceof Stripe.errors.StripeError) {
-          return json(
-            {
-              error: caught.message,
-              code: caught.code,
-              type: caught.type,
-            },
-            400,
-          );
-        }
-
         return json(
           {
             error: caught instanceof Error ? caught.message : "Unable to start checkout",

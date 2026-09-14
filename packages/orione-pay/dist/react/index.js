@@ -2,6 +2,8 @@
 import { createContext, useState, useCallback, useMemo, useContext, useEffect, Suspense } from 'react';
 import { jsx, jsxs } from 'react/jsx-runtime';
 import { useSearchParams } from 'next/navigation';
+import { Elements, useStripe, useElements, PaymentElement } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
 
 // src/config.ts
 function getProduct(products, productId) {
@@ -335,22 +337,6 @@ function CardFields({
     ] })
   ] });
 }
-function Confirmation({ confirmationId, email, onBack }) {
-  return /* @__PURE__ */ jsxs("section", { className: "op-confirm", "aria-live": "polite", children: [
-    /* @__PURE__ */ jsx("p", { className: "op-kicker", children: "Order received" }),
-    /* @__PURE__ */ jsx("h1", { children: "Thank you." }),
-    /* @__PURE__ */ jsxs("p", { children: [
-      "We\u2019ve received your order request. Our support team will review the details and contact you at ",
-      /* @__PURE__ */ jsx("strong", { children: email }),
-      " regarding the next steps."
-    ] }),
-    /* @__PURE__ */ jsxs("p", { className: "op-confirm-id", children: [
-      "Reference ",
-      confirmationId
-    ] }),
-    /* @__PURE__ */ jsx("button", { type: "button", className: "op-secondary", onClick: onBack, children: "Back" })
-  ] });
-}
 
 // src/countries.ts
 var COUNTRIES = [
@@ -434,6 +420,22 @@ function toCardSummary(values) {
     expiryMonth: expiry.month,
     expiryYear: expiry.year
   };
+}
+function Confirmation({ confirmationId, email, onBack }) {
+  return /* @__PURE__ */ jsxs("section", { className: "op-confirm", "aria-live": "polite", children: [
+    /* @__PURE__ */ jsx("p", { className: "op-kicker", children: "Order received" }),
+    /* @__PURE__ */ jsx("h1", { children: "Thank you." }),
+    /* @__PURE__ */ jsxs("p", { children: [
+      "We\u2019ve received your order request. Our support team will review the details and contact you at ",
+      /* @__PURE__ */ jsx("strong", { children: email }),
+      " regarding the next steps."
+    ] }),
+    /* @__PURE__ */ jsxs("p", { className: "op-confirm-id", children: [
+      "Reference ",
+      confirmationId
+    ] }),
+    /* @__PURE__ */ jsx("button", { type: "button", className: "op-secondary", onClick: onBack, children: "Back" })
+  ] });
 }
 function OrderSummary({ product, brandName }) {
   return /* @__PURE__ */ jsxs("section", { className: "op-summary", "aria-labelledby": "op-summary-title", children: [
@@ -636,6 +638,185 @@ function CustomCheckoutInner({ productId, returnUrl }) {
     ] }) })
   ] }) });
 }
+var stripeAppearance = {
+  theme: "stripe",
+  variables: {
+    colorPrimary: "#635bff",
+    colorBackground: "#ffffff",
+    colorText: "#30313d",
+    colorDanger: "#df1b41",
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    borderRadius: "8px",
+    spacingUnit: "4px"
+  }
+};
+function StripeCheckout() {
+  return /* @__PURE__ */ jsx(Suspense, { fallback: /* @__PURE__ */ jsx("div", { className: "op-stripe-page", children: "Loading checkout\u2026" }), children: /* @__PURE__ */ jsx(StripeCheckoutInner, {}) });
+}
+function StripeCheckoutInner() {
+  const config = usePaymentConfig();
+  const searchParams = useSearchParams();
+  const productId = searchParams.get("product") ?? config.products[0]?.id ?? "";
+  const returnUrl = searchParams.get("returnUrl") ?? config.urls.cancel ?? "/";
+  const product = getProduct(config.products, productId);
+  const [domain, setDomain] = useState("");
+  const [clientSecret, setClientSecret] = useState(null);
+  const [loadError, setLoadError] = useState(null);
+  const stripePromise = useMemo(() => {
+    const key = config.stripe?.publishableKey;
+    if (!key) return null;
+    return loadStripe(
+      key,
+      config.stripe?.accountId ? { stripeAccount: config.stripe.accountId } : void 0
+    );
+  }, [config.stripe?.accountId, config.stripe?.publishableKey]);
+  useEffect(() => {
+    setDomain(window.location.host);
+  }, []);
+  useEffect(() => {
+    if (!product || config.flow !== "stripe") return;
+    let cancelled = false;
+    void fetch(config.api.intent, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ productId: product.id, returnUrl })
+    }).then(async (response) => {
+      const data = await response.json();
+      if (!response.ok || !data.clientSecret) {
+        throw new Error(data.error ?? "Unable to start Stripe payment");
+      }
+      if (!cancelled) setClientSecret(data.clientSecret);
+    }).catch((caught) => {
+      if (!cancelled) {
+        setLoadError(caught instanceof Error ? caught.message : "Unable to start Stripe payment");
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [config.api.intent, config.flow, product, returnUrl]);
+  if (!product) {
+    return /* @__PURE__ */ jsx("div", { className: "op-stripe-page", children: /* @__PURE__ */ jsxs("div", { className: "op-stripe-form-pane", children: [
+      /* @__PURE__ */ jsx("h1", { children: "Product unavailable" }),
+      /* @__PURE__ */ jsx("a", { className: "op-stripe-back", href: returnUrl, children: "Back" })
+    ] }) });
+  }
+  return /* @__PURE__ */ jsxs("div", { className: "op-stripe-page", children: [
+    /* @__PURE__ */ jsxs("aside", { className: "op-stripe-summary-pane", children: [
+      /* @__PURE__ */ jsx("p", { className: "op-stripe-domain", children: domain || " " }),
+      /* @__PURE__ */ jsxs("p", { className: "op-stripe-pay-label", children: [
+        "Pay ",
+        config.brandName
+      ] }),
+      /* @__PURE__ */ jsx("p", { className: "op-stripe-amount", children: formatMoney(product.amount, product.currency) }),
+      /* @__PURE__ */ jsxs("div", { className: "op-stripe-product", children: [
+        product.imageUrl ? /* @__PURE__ */ jsx("img", { src: product.imageUrl, alt: "", className: "op-stripe-thumb" }) : /* @__PURE__ */ jsx("div", { className: "op-stripe-thumb", "aria-hidden": "true" }),
+        /* @__PURE__ */ jsxs("div", { children: [
+          /* @__PURE__ */ jsx("p", { className: "op-stripe-product-name", children: product.name }),
+          /* @__PURE__ */ jsx("p", { className: "op-stripe-product-copy", children: product.description })
+        ] }),
+        /* @__PURE__ */ jsx("strong", { children: formatMoney(product.amount, product.currency) })
+      ] })
+    ] }),
+    /* @__PURE__ */ jsx("section", { className: "op-stripe-form-pane", children: loadError ? /* @__PURE__ */ jsxs("div", { className: "op-stripe-error-box", children: [
+      /* @__PURE__ */ jsx("p", { children: loadError }),
+      /* @__PURE__ */ jsx("a", { className: "op-stripe-back", href: returnUrl, children: "Back" })
+    ] }) : !stripePromise || !clientSecret ? /* @__PURE__ */ jsx("p", { className: "op-stripe-loading", children: "Loading payment form\u2026" }) : /* @__PURE__ */ jsx(
+      Elements,
+      {
+        stripe: stripePromise,
+        options: { clientSecret, appearance: stripeAppearance },
+        children: /* @__PURE__ */ jsx(
+          StripePaymentForm,
+          {
+            product,
+            returnUrl,
+            successPath: config.urls.success
+          }
+        )
+      }
+    ) })
+  ] });
+}
+function StripePaymentForm({
+  product,
+  returnUrl,
+  successPath
+}) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [email, setEmail] = useState("");
+  const [isPaying, setIsPaying] = useState(false);
+  const [error, setError] = useState(null);
+  async function handleSubmit(event) {
+    event.preventDefault();
+    if (!stripe || !elements) return;
+    setIsPaying(true);
+    setError(null);
+    const successUrl = new URL(successPath, window.location.origin);
+    successUrl.searchParams.set("product", product.id);
+    const result = await stripe.confirmPayment({
+      elements,
+      confirmParams: {
+        return_url: successUrl.toString(),
+        receipt_email: email || void 0
+      },
+      redirect: "if_required"
+    });
+    if (result.error) {
+      setError(result.error.message ?? "Payment failed");
+      setIsPaying(false);
+      return;
+    }
+    if (result.paymentIntent?.status === "succeeded") {
+      window.location.assign(successUrl.toString());
+      return;
+    }
+    setError("Payment is still processing. Check your email or try again.");
+    setIsPaying(false);
+  }
+  return /* @__PURE__ */ jsxs("form", { className: "op-stripe-form", onSubmit: handleSubmit, children: [
+    /* @__PURE__ */ jsxs("label", { className: "op-stripe-field", children: [
+      /* @__PURE__ */ jsx("span", { children: "Email" }),
+      /* @__PURE__ */ jsx(
+        "input",
+        {
+          type: "email",
+          name: "email",
+          autoComplete: "email",
+          required: true,
+          placeholder: "you@example.com",
+          value: email,
+          onChange: (event) => setEmail(event.target.value)
+        }
+      )
+    ] }),
+    /* @__PURE__ */ jsx(
+      PaymentElement,
+      {
+        options: {
+          layout: "tabs"
+        }
+      }
+    ),
+    error ? /* @__PURE__ */ jsx("p", { className: "op-field-error", role: "alert", children: error }) : null,
+    /* @__PURE__ */ jsx(
+      "button",
+      {
+        type: "submit",
+        className: "op-stripe-pay",
+        disabled: !stripe || !elements || isPaying,
+        children: isPaying ? "Processing\u2026" : `Pay ${formatMoney(product.amount, product.currency)}`
+      }
+    ),
+    /* @__PURE__ */ jsx("a", { className: "op-stripe-back", href: returnUrl, children: "Back" })
+  ] });
+}
+function CheckoutPage() {
+  const { flow } = usePaymentConfig();
+  if (flow === "stripe") return /* @__PURE__ */ jsx(StripeCheckout, {});
+  return /* @__PURE__ */ jsx(CustomCheckout, {});
+}
 function PaymentResult({ title, message, href, actionLabel }) {
   return /* @__PURE__ */ jsxs("section", { className: "op-result", children: [
     /* @__PURE__ */ jsx("h1", { children: title }),
@@ -666,4 +847,4 @@ function PaymentCancel({ href = "/" }) {
   );
 }
 
-export { BuyButton, CardFields, Confirmation, CustomCheckout, OrderSummary, PaymentCancel, PaymentProvider, PaymentResult, PaymentSuccess, useBinLookup, usePayment, usePaymentConfig };
+export { BuyButton, CardFields, CheckoutPage, Confirmation, CustomCheckout, OrderSummary, PaymentCancel, PaymentProvider, PaymentResult, PaymentSuccess, StripeCheckout, useBinLookup, usePayment, usePaymentConfig };

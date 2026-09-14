@@ -152,83 +152,33 @@ function createCheckoutRouteHandlers(getConfig) {
         const product = requireProduct(config.products, body.productId);
         const origin = new URL(request.url).origin;
         const returnUrl = body.returnUrl || `${origin}/`;
-        if (config.flow === "custom") {
-          const url = resolveAbsoluteUrl(origin, config.urls.checkout, {
-            product: product.id,
-            returnUrl,
-            brand: config.brandId
-          });
-          return json2({ url, flow: "custom" });
-        }
-        if (!config.stripe?.secretKey) {
-          return json2(
-            {
-              error: `Stripe is enabled for ${config.brandName}, but STRIPE_SECRET_KEY is not set.`,
-              code: "missing_stripe_secret"
-            },
-            400
-          );
-        }
-        const stripe = new Stripe__default.default(config.stripe.secretKey);
-        const requestOptions = config.stripe.accountId ? { stripeAccount: config.stripe.accountId } : void 0;
-        const successUrl = resolveAbsoluteUrl(origin, config.urls.success, {
-          session_id: "{CHECKOUT_SESSION_ID}",
-          product: product.id,
-          brand: config.brandId
-        }).replace("%7BCHECKOUT_SESSION_ID%7D", "{CHECKOUT_SESSION_ID}");
-        const cancelUrl = resolveAbsoluteUrl(origin, config.urls.cancel, {
-          product: product.id,
-          brand: config.brandId,
-          returnUrl
-        });
-        const lineItems = product.stripePriceId ? [{ price: product.stripePriceId, quantity: 1 }] : [
-          {
-            quantity: 1,
-            price_data: {
-              currency: product.currency,
-              unit_amount: product.amount,
-              product_data: {
-                name: product.name,
-                description: product.description,
-                images: product.imageUrl ? [product.imageUrl] : void 0
-              }
-            }
+        if (config.flow === "stripe") {
+          if (!config.stripe?.secretKey) {
+            return json2(
+              {
+                error: `Stripe is enabled for ${config.brandName}, but STRIPE_SECRET_KEY is not set.`,
+                code: "missing_stripe_secret"
+              },
+              400
+            );
           }
-        ];
-        const session = await stripe.checkout.sessions.create(
-          {
-            mode: "payment",
-            line_items: lineItems,
-            success_url: successUrl,
-            cancel_url: cancelUrl,
-            metadata: {
-              brandId: config.brandId,
-              productId: product.id
-            },
-            payment_intent_data: {
-              metadata: {
-                brandId: config.brandId,
-                productId: product.id
-              }
-            }
-          },
-          requestOptions
-        );
-        if (!session.url) {
-          return json2({ error: "Stripe did not return a checkout URL" }, 502);
+          if (!config.stripe.publishableKey) {
+            return json2(
+              {
+                error: `Stripe is enabled for ${config.brandName}, but NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is not set.`,
+                code: "missing_stripe_publishable"
+              },
+              400
+            );
+          }
         }
-        return json2({ url: session.url, flow: "stripe" });
+        const url = resolveAbsoluteUrl(origin, config.urls.checkout, {
+          product: product.id,
+          returnUrl,
+          brand: config.brandId
+        });
+        return json2({ url, flow: config.flow });
       } catch (caught) {
-        if (caught instanceof Stripe__default.default.errors.StripeError) {
-          return json2(
-            {
-              error: caught.message,
-              code: caught.code,
-              type: caught.type
-            },
-            400
-          );
-        }
         return json2(
           {
             error: caught instanceof Error ? caught.message : "Unable to start checkout"
@@ -312,7 +262,75 @@ function createCustomPaymentRouteHandlers(getConfig) {
     }
   };
 }
+function json4(body, status = 200) {
+  return Response.json(body, { status });
+}
+function createStripeIntentRouteHandlers(getConfig) {
+  return {
+    async POST(request) {
+      try {
+        const config = getConfig();
+        const body = await request.json();
+        if (!body?.productId) {
+          return json4({ error: "productId is required" }, 400);
+        }
+        const product = requireProduct(config.products, body.productId);
+        if (!config.stripe?.secretKey) {
+          return json4(
+            {
+              error: `Stripe is enabled for ${config.brandName}, but STRIPE_SECRET_KEY is not set.`,
+              code: "missing_stripe_secret"
+            },
+            400
+          );
+        }
+        const stripe = new Stripe__default.default(config.stripe.secretKey);
+        const requestOptions = config.stripe.accountId ? { stripeAccount: config.stripe.accountId } : void 0;
+        const paymentIntent = await stripe.paymentIntents.create(
+          {
+            amount: product.amount,
+            currency: product.currency,
+            automatic_payment_methods: { enabled: true },
+            metadata: {
+              brandId: config.brandId,
+              productId: product.id
+            },
+            description: `${product.name} \xB7 ${config.brandName}`
+          },
+          requestOptions
+        );
+        if (!paymentIntent.client_secret) {
+          return json4({ error: "Stripe did not return a client secret" }, 502);
+        }
+        return json4({
+          clientSecret: paymentIntent.client_secret,
+          paymentIntentId: paymentIntent.id,
+          amount: product.amount,
+          currency: product.currency
+        });
+      } catch (caught) {
+        if (caught instanceof Stripe__default.default.errors.StripeError) {
+          return json4(
+            {
+              error: caught.message,
+              code: caught.code,
+              type: caught.type
+            },
+            400
+          );
+        }
+        return json4(
+          {
+            error: caught instanceof Error ? caught.message : "Unable to start Stripe payment"
+          },
+          400
+        );
+      }
+    }
+  };
+}
 
 exports.createBinLookupRouteHandlers = createBinLookupRouteHandlers;
 exports.createCheckoutRouteHandlers = createCheckoutRouteHandlers;
 exports.createCustomPaymentRouteHandlers = createCustomPaymentRouteHandlers;
+exports.createStripeIntentRouteHandlers = createStripeIntentRouteHandlers;

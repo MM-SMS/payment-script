@@ -35,6 +35,7 @@ export interface PaymentApiPaths {
   checkout: string;
   custom: string;
   bin: string;
+  intent: string;
 }
 
 export interface StripePublicConfig {
@@ -120,6 +121,13 @@ export interface CustomPaymentResponse {
   message: string;
 }
 
+export interface StripeIntentResponse {
+  clientSecret: string;
+  paymentIntentId: string;
+  amount: number;
+  currency: string;
+}
+
 export type CardBrand =
   | "visa"
   | "mastercard"
@@ -138,6 +146,7 @@ export const DEFAULT_API_PATHS: PaymentApiPaths = {
   checkout: "/api/orione-pay/checkout",
   custom: "/api/orione-pay/custom",
   bin: "/api/orione-pay/bin",
+  intent: "/api/orione-pay/intent",
 };
 
 export const DEFAULT_URLS: PaymentUrls = {

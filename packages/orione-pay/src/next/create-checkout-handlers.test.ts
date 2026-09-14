@@ -54,6 +54,39 @@ describe("checkout router", () => {
     expect(data.error).toContain("Unknown product");
   });
 
+  it("routes stripe flow to the on-domain checkout page", async () => {
+    const config = definePaymentConfig({
+      brandId: "vela",
+      brandName: "VELA",
+      flow: "stripe",
+      products: [
+        {
+          id: "no-01",
+          name: "VELA No. 01",
+          description: "Test product",
+          amount: 14800,
+          currency: "usd",
+        },
+      ],
+      stripe: {
+        secretKey: "sk_test_placeholder",
+        publishableKey: "pk_test_placeholder",
+      },
+    });
+    const { POST } = createCheckoutRouteHandlers(() => config);
+    const response = await POST(
+      post("http://brand.test/api/orione-pay/checkout", {
+        productId: "no-01",
+        returnUrl: "http://brand.test/products/no-01",
+      }),
+    );
+    const data = (await response.json()) as { url: string; flow: string };
+    expect(response.status).toBe(200);
+    expect(data.flow).toBe("stripe");
+    expect(data.url).toContain("/payment?product=no-01");
+    expect(data.url).not.toContain("checkout.stripe.com");
+  });
+
   it("does not start Stripe without this brand's secret key", async () => {
     const { POST } = createCheckoutRouteHandlers(() => makeConfig("stripe"));
     const response = await POST(

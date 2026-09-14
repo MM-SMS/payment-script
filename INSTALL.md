@@ -53,14 +53,17 @@
      export const { POST } = createCustomPaymentRouteHandlers(() => serverPaymentConfig)
    app/api/orione-pay/bin/route.ts
      export const { GET } = createBinLookupRouteHandlers()
+   app/api/orione-pay/intent/route.ts
+     export const { POST } = createStripeIntentRouteHandlers(() => serverPaymentConfig)
 
-8. app/payment/page.tsx — <CustomCheckout />
+8. app/payment/page.tsx — <CheckoutPage />
    app/purchase/success/page.tsx — <PaymentSuccess href="/" />
    app/purchase/cancel/page.tsx — <PaymentCancel href="/" />
    /payment не закрывать middleware авторизацией.
 
 9. Не дублируй checkout UI. Не хардкодь Stripe account другого бренда.
    Переключение Stripe ↔ custom только через PAYMENT_FLOW.
+   Stripe: Buy открывает /payment на текущем домене, слева hostname, справа Payment Element.
    Custom — эмуляция: карта валидируется на фронте, полный PAN на сервер не уходит,
    после Pay показывается Order received, Back возвращает на product page.
 
@@ -101,6 +104,7 @@ app/purchase/cancel/page.tsx
 app/api/orione-pay/checkout/route.ts
 app/api/orione-pay/custom/route.ts
 app/api/orione-pay/bin/route.ts
+app/api/orione-pay/intent/route.ts
 ```
 
 На товар: цена и `<BuyButton productId="..." />`.

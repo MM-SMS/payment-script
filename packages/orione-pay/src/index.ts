@@ -60,6 +60,7 @@ export type {
   Product,
   PublicPaymentConfig,
   ServerPaymentConfig,
+  StripeIntentResponse,
   StripePublicConfig,
   StripeServerConfig,
 } from "./types";

@@ -7,8 +7,8 @@ GitHub: [MM-SMS/payment-script](https://github.com/MM-SMS/payment-script)
 **Промпт и шаги для другого сайта:** [INSTALL.md](INSTALL.md)
 
 ```
-Brand → Product → Buy CTA → Payment Router → Stripe Checkout
-                                           → Custom Payment Form
+Brand → Product → Buy CTA → Payment Router → /payment Stripe Elements
+                                           → /payment Custom form
 ```
 
 ## Что внутри

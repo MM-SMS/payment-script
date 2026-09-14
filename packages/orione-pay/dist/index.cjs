@@ -4,7 +4,8 @@
 var DEFAULT_API_PATHS = {
   checkout: "/api/orione-pay/checkout",
   custom: "/api/orione-pay/custom",
-  bin: "/api/orione-pay/bin"
+  bin: "/api/orione-pay/bin",
+  intent: "/api/orione-pay/intent"
 };
 var DEFAULT_URLS = {
   success: "/purchase/success",

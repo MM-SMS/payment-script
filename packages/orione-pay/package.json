@@ -40,7 +40,9 @@
     "react-dom": ">=18.0.0"
   },
   "dependencies": {
-    "stripe": "^17.5.0"
+    "stripe": "^17.5.0",
+    "@stripe/stripe-js": "^5.10.0",
+    "@stripe/react-stripe-js": "^3.9.0"
   },
   "devDependencies": {
     "@types/react": "^19.0.10",

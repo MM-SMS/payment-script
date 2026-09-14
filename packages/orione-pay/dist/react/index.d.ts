@@ -1,6 +1,6 @@
 import * as react from 'react';
 import { ButtonHTMLAttributes, ReactNode } from 'react';
-import { F as FieldErrors, P as PublicPaymentConfig, a as Product } from '../types-D3q3Z2Lx.js';
+import { F as FieldErrors, P as PublicPaymentConfig, a as Product } from '../types-BV3ipef2.js';
 import { B as BinInfo } from '../bin-B3UV-FYt.js';
 
 interface BuyButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "onClick"> {
@@ -21,6 +21,8 @@ interface CardFieldsProps {
     onChange: (field: "cardNumber" | "expiry" | "cvv" | "cardholderName", value: string) => void;
 }
 declare function CardFields({ cardNumber, expiry, cvv, cardholderName, errors, disabled, onChange, }: CardFieldsProps): react.JSX.Element;
+
+declare function CheckoutPage(): react.JSX.Element;
 
 interface ConfirmationProps {
     confirmationId: string;
@@ -70,6 +72,8 @@ declare function PaymentCancel({ href }: {
     href?: string;
 }): react.JSX.Element;
 
+declare function StripeCheckout(): react.JSX.Element;
+
 declare function useBinLookup(cardNumber: string, endpoint?: string): BinInfo | null;
 
-export { BuyButton, type BuyButtonProps, CardFields, Confirmation, CustomCheckout, OrderSummary, PaymentCancel, PaymentProvider, PaymentResult, PaymentSuccess, useBinLookup, usePayment, usePaymentConfig };
+export { BuyButton, type BuyButtonProps, CardFields, CheckoutPage, Confirmation, CustomCheckout, OrderSummary, PaymentCancel, PaymentProvider, PaymentResult, PaymentSuccess, StripeCheckout, useBinLookup, usePayment, usePaymentConfig };

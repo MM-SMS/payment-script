@@ -4,6 +4,8 @@
 var react = require('react');
 var jsxRuntime = require('react/jsx-runtime');
 var navigation = require('next/navigation');
+var reactStripeJs = require('@stripe/react-stripe-js');
+var stripeJs = require('@stripe/stripe-js');
 
 // src/config.ts
 function getProduct(products, productId) {
@@ -337,22 +339,6 @@ function CardFields({
     ] })
   ] });
 }
-function Confirmation({ confirmationId, email, onBack }) {
-  return /* @__PURE__ */ jsxRuntime.jsxs("section", { className: "op-confirm", "aria-live": "polite", children: [
-    /* @__PURE__ */ jsxRuntime.jsx("p", { className: "op-kicker", children: "Order received" }),
-    /* @__PURE__ */ jsxRuntime.jsx("h1", { children: "Thank you." }),
-    /* @__PURE__ */ jsxRuntime.jsxs("p", { children: [
-      "We\u2019ve received your order request. Our support team will review the details and contact you at ",
-      /* @__PURE__ */ jsxRuntime.jsx("strong", { children: email }),
-      " regarding the next steps."
-    ] }),
-    /* @__PURE__ */ jsxRuntime.jsxs("p", { className: "op-confirm-id", children: [
-      "Reference ",
-      confirmationId
-    ] }),
-    /* @__PURE__ */ jsxRuntime.jsx("button", { type: "button", className: "op-secondary", onClick: onBack, children: "Back" })
-  ] });
-}
 
 // src/countries.ts
 var COUNTRIES = [
@@ -436,6 +422,22 @@ function toCardSummary(values) {
     expiryMonth: expiry.month,
     expiryYear: expiry.year
   };
+}
+function Confirmation({ confirmationId, email, onBack }) {
+  return /* @__PURE__ */ jsxRuntime.jsxs("section", { className: "op-confirm", "aria-live": "polite", children: [
+    /* @__PURE__ */ jsxRuntime.jsx("p", { className: "op-kicker", children: "Order received" }),
+    /* @__PURE__ */ jsxRuntime.jsx("h1", { children: "Thank you." }),
+    /* @__PURE__ */ jsxRuntime.jsxs("p", { children: [
+      "We\u2019ve received your order request. Our support team will review the details and contact you at ",
+      /* @__PURE__ */ jsxRuntime.jsx("strong", { children: email }),
+      " regarding the next steps."
+    ] }),
+    /* @__PURE__ */ jsxRuntime.jsxs("p", { className: "op-confirm-id", children: [
+      "Reference ",
+      confirmationId
+    ] }),
+    /* @__PURE__ */ jsxRuntime.jsx("button", { type: "button", className: "op-secondary", onClick: onBack, children: "Back" })
+  ] });
 }
 function OrderSummary({ product, brandName }) {
   return /* @__PURE__ */ jsxRuntime.jsxs("section", { className: "op-summary", "aria-labelledby": "op-summary-title", children: [
@@ -638,6 +640,185 @@ function CustomCheckoutInner({ productId, returnUrl }) {
     ] }) })
   ] }) });
 }
+var stripeAppearance = {
+  theme: "stripe",
+  variables: {
+    colorPrimary: "#635bff",
+    colorBackground: "#ffffff",
+    colorText: "#30313d",
+    colorDanger: "#df1b41",
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    borderRadius: "8px",
+    spacingUnit: "4px"
+  }
+};
+function StripeCheckout() {
+  return /* @__PURE__ */ jsxRuntime.jsx(react.Suspense, { fallback: /* @__PURE__ */ jsxRuntime.jsx("div", { className: "op-stripe-page", children: "Loading checkout\u2026" }), children: /* @__PURE__ */ jsxRuntime.jsx(StripeCheckoutInner, {}) });
+}
+function StripeCheckoutInner() {
+  const config = usePaymentConfig();
+  const searchParams = navigation.useSearchParams();
+  const productId = searchParams.get("product") ?? config.products[0]?.id ?? "";
+  const returnUrl = searchParams.get("returnUrl") ?? config.urls.cancel ?? "/";
+  const product = getProduct(config.products, productId);
+  const [domain, setDomain] = react.useState("");
+  const [clientSecret, setClientSecret] = react.useState(null);
+  const [loadError, setLoadError] = react.useState(null);
+  const stripePromise = react.useMemo(() => {
+    const key = config.stripe?.publishableKey;
+    if (!key) return null;
+    return stripeJs.loadStripe(
+      key,
+      config.stripe?.accountId ? { stripeAccount: config.stripe.accountId } : void 0
+    );
+  }, [config.stripe?.accountId, config.stripe?.publishableKey]);
+  react.useEffect(() => {
+    setDomain(window.location.host);
+  }, []);
+  react.useEffect(() => {
+    if (!product || config.flow !== "stripe") return;
+    let cancelled = false;
+    void fetch(config.api.intent, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ productId: product.id, returnUrl })
+    }).then(async (response) => {
+      const data = await response.json();
+      if (!response.ok || !data.clientSecret) {
+        throw new Error(data.error ?? "Unable to start Stripe payment");
+      }
+      if (!cancelled) setClientSecret(data.clientSecret);
+    }).catch((caught) => {
+      if (!cancelled) {
+        setLoadError(caught instanceof Error ? caught.message : "Unable to start Stripe payment");
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [config.api.intent, config.flow, product, returnUrl]);
+  if (!product) {
+    return /* @__PURE__ */ jsxRuntime.jsx("div", { className: "op-stripe-page", children: /* @__PURE__ */ jsxRuntime.jsxs("div", { className: "op-stripe-form-pane", children: [
+      /* @__PURE__ */ jsxRuntime.jsx("h1", { children: "Product unavailable" }),
+      /* @__PURE__ */ jsxRuntime.jsx("a", { className: "op-stripe-back", href: returnUrl, children: "Back" })
+    ] }) });
+  }
+  return /* @__PURE__ */ jsxRuntime.jsxs("div", { className: "op-stripe-page", children: [
+    /* @__PURE__ */ jsxRuntime.jsxs("aside", { className: "op-stripe-summary-pane", children: [
+      /* @__PURE__ */ jsxRuntime.jsx("p", { className: "op-stripe-domain", children: domain || " " }),
+      /* @__PURE__ */ jsxRuntime.jsxs("p", { className: "op-stripe-pay-label", children: [
+        "Pay ",
+        config.brandName
+      ] }),
+      /* @__PURE__ */ jsxRuntime.jsx("p", { className: "op-stripe-amount", children: formatMoney(product.amount, product.currency) }),
+      /* @__PURE__ */ jsxRuntime.jsxs("div", { className: "op-stripe-product", children: [
+        product.imageUrl ? /* @__PURE__ */ jsxRuntime.jsx("img", { src: product.imageUrl, alt: "", className: "op-stripe-thumb" }) : /* @__PURE__ */ jsxRuntime.jsx("div", { className: "op-stripe-thumb", "aria-hidden": "true" }),
+        /* @__PURE__ */ jsxRuntime.jsxs("div", { children: [
+          /* @__PURE__ */ jsxRuntime.jsx("p", { className: "op-stripe-product-name", children: product.name }),
+          /* @__PURE__ */ jsxRuntime.jsx("p", { className: "op-stripe-product-copy", children: product.description })
+        ] }),
+        /* @__PURE__ */ jsxRuntime.jsx("strong", { children: formatMoney(product.amount, product.currency) })
+      ] })
+    ] }),
+    /* @__PURE__ */ jsxRuntime.jsx("section", { className: "op-stripe-form-pane", children: loadError ? /* @__PURE__ */ jsxRuntime.jsxs("div", { className: "op-stripe-error-box", children: [
+      /* @__PURE__ */ jsxRuntime.jsx("p", { children: loadError }),
+      /* @__PURE__ */ jsxRuntime.jsx("a", { className: "op-stripe-back", href: returnUrl, children: "Back" })
+    ] }) : !stripePromise || !clientSecret ? /* @__PURE__ */ jsxRuntime.jsx("p", { className: "op-stripe-loading", children: "Loading payment form\u2026" }) : /* @__PURE__ */ jsxRuntime.jsx(
+      reactStripeJs.Elements,
+      {
+        stripe: stripePromise,
+        options: { clientSecret, appearance: stripeAppearance },
+        children: /* @__PURE__ */ jsxRuntime.jsx(
+          StripePaymentForm,
+          {
+            product,
+            returnUrl,
+            successPath: config.urls.success
+          }
+        )
+      }
+    ) })
+  ] });
+}
+function StripePaymentForm({
+  product,
+  returnUrl,
+  successPath
+}) {
+  const stripe = reactStripeJs.useStripe();
+  const elements = reactStripeJs.useElements();
+  const [email, setEmail] = react.useState("");
+  const [isPaying, setIsPaying] = react.useState(false);
+  const [error, setError] = react.useState(null);
+  async function handleSubmit(event) {
+    event.preventDefault();
+    if (!stripe || !elements) return;
+    setIsPaying(true);
+    setError(null);
+    const successUrl = new URL(successPath, window.location.origin);
+    successUrl.searchParams.set("product", product.id);
+    const result = await stripe.confirmPayment({
+      elements,
+      confirmParams: {
+        return_url: successUrl.toString(),
+        receipt_email: email || void 0
+      },
+      redirect: "if_required"
+    });
+    if (result.error) {
+      setError(result.error.message ?? "Payment failed");
+      setIsPaying(false);
+      return;
+    }
+    if (result.paymentIntent?.status === "succeeded") {
+      window.location.assign(successUrl.toString());
+      return;
+    }
+    setError("Payment is still processing. Check your email or try again.");
+    setIsPaying(false);
+  }
+  return /* @__PURE__ */ jsxRuntime.jsxs("form", { className: "op-stripe-form", onSubmit: handleSubmit, children: [
+    /* @__PURE__ */ jsxRuntime.jsxs("label", { className: "op-stripe-field", children: [
+      /* @__PURE__ */ jsxRuntime.jsx("span", { children: "Email" }),
+      /* @__PURE__ */ jsxRuntime.jsx(
+        "input",
+        {
+          type: "email",
+          name: "email",
+          autoComplete: "email",
+          required: true,
+          placeholder: "you@example.com",
+          value: email,
+          onChange: (event) => setEmail(event.target.value)
+        }
+      )
+    ] }),
+    /* @__PURE__ */ jsxRuntime.jsx(
+      reactStripeJs.PaymentElement,
+      {
+        options: {
+          layout: "tabs"
+        }
+      }
+    ),
+    error ? /* @__PURE__ */ jsxRuntime.jsx("p", { className: "op-field-error", role: "alert", children: error }) : null,
+    /* @__PURE__ */ jsxRuntime.jsx(
+      "button",
+      {
+        type: "submit",
+        className: "op-stripe-pay",
+        disabled: !stripe || !elements || isPaying,
+        children: isPaying ? "Processing\u2026" : `Pay ${formatMoney(product.amount, product.currency)}`
+      }
+    ),
+    /* @__PURE__ */ jsxRuntime.jsx("a", { className: "op-stripe-back", href: returnUrl, children: "Back" })
+  ] });
+}
+function CheckoutPage() {
+  const { flow } = usePaymentConfig();
+  if (flow === "stripe") return /* @__PURE__ */ jsxRuntime.jsx(StripeCheckout, {});
+  return /* @__PURE__ */ jsxRuntime.jsx(CustomCheckout, {});
+}
 function PaymentResult({ title, message, href, actionLabel }) {
   return /* @__PURE__ */ jsxRuntime.jsxs("section", { className: "op-result", children: [
     /* @__PURE__ */ jsxRuntime.jsx("h1", { children: title }),
@@ -670,6 +851,7 @@ function PaymentCancel({ href = "/" }) {
 
 exports.BuyButton = BuyButton;
 exports.CardFields = CardFields;
+exports.CheckoutPage = CheckoutPage;
 exports.Confirmation = Confirmation;
 exports.CustomCheckout = CustomCheckout;
 exports.OrderSummary = OrderSummary;
@@ -677,6 +859,7 @@ exports.PaymentCancel = PaymentCancel;
 exports.PaymentProvider = PaymentProvider;
 exports.PaymentResult = PaymentResult;
 exports.PaymentSuccess = PaymentSuccess;
+exports.StripeCheckout = StripeCheckout;
 exports.useBinLookup = useBinLookup;
 exports.usePayment = usePayment;
 exports.usePaymentConfig = usePaymentConfig;

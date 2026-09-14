@@ -13,7 +13,15 @@ export default defineConfig({
   sourcemap: false,
   clean: true,
   treeshake: true,
-  external: ["react", "react-dom", "react/jsx-runtime", "next", "stripe"],
+  external: [
+    "react",
+    "react-dom",
+    "react/jsx-runtime",
+    "next",
+    "stripe",
+    "@stripe/stripe-js",
+    "@stripe/react-stripe-js",
+  ],
   esbuildOptions(options) {
     options.jsx = "automatic";
   },
