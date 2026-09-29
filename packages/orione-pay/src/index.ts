@@ -30,6 +30,9 @@ export {
   validateCardNumber,
   validateCardholderName,
   validateCvv,
+  cvvLength,
+  ACCEPTED_BRANDS_LABEL,
+  BRAND_LENGTHS,
   validateExpiry,
 } from "./validation/card";
 export {

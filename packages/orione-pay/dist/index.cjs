@@ -226,12 +226,28 @@ function cardBrandLabel(brand) {
   };
   return labels[brand];
 }
+var ACCEPTED_BRANDS_LABEL = "Visa, Mastercard, American Express, Discover, Diners Club, JCB and UnionPay";
+var BRAND_LENGTHS = {
+  visa: [13, 16, 19],
+  mastercard: [16],
+  amex: [15],
+  discover: [16, 17, 18, 19],
+  diners: [14, 15, 16, 17, 18, 19],
+  jcb: [16, 17, 18, 19],
+  unionpay: [16, 17, 18, 19]
+};
 function validateCardNumber(cardNumber) {
   const digits = cardNumber.replace(/\D/g, "");
   if (!digits) return "Enter a card number";
   if (digits.length < 13) return "Card number is too short";
+  const brand = detectCardBrand(digits);
+  if (brand === "unknown") return `This card type is not supported. We accept ${ACCEPTED_BRANDS_LABEL}.`;
+  if (!BRAND_LENGTHS[brand].includes(digits.length)) return `A ${cardBrandLabel(brand)} number has ${BRAND_LENGTHS[brand].join(", ").replace(/, (\d+)$/, " or $1")} digits`;
   if (!luhnCheck(digits)) return "Card number is invalid";
   return void 0;
+}
+function cvvLength(brand) {
+  return brand === "amex" ? 4 : 3;
 }
 function validateExpiry(expiry, now = /* @__PURE__ */ new Date()) {
   const match = expiry.replace(/\s/g, "").match(/^(\d{2})\/(\d{2})$/);
@@ -243,8 +259,9 @@ function validateExpiry(expiry, now = /* @__PURE__ */ new Date()) {
   if (expiryDate < now) return "Card has expired";
   return void 0;
 }
-function validateCvv(cvv) {
-  if (!/^\d{3}$/.test(cvv)) return "CVV must be 3 digits";
+function validateCvv(cvv, brand = "unknown") {
+  const length = cvvLength(brand);
+  if (!new RegExp(`^\\d{${length}}$`).test(cvv)) return `CVV must be ${length} digits`;
   return void 0;
 }
 function validateCardholderName(name) {
@@ -284,7 +301,7 @@ function validateCheckoutForm(values) {
     email: validateEmail(values.email),
     cardNumber: validateCardNumber(values.cardNumber),
     expiry: validateExpiry(values.expiry),
-    cvv: validateCvv(values.cvv),
+    cvv: validateCvv(values.cvv, detectCardBrand(values.cardNumber)),
     cardholderName: validateCardholderName(values.cardholderName),
     country: validateCountry(values.country),
     address: validateAddress(values.address),
@@ -305,6 +322,8 @@ function toCardSummary(values) {
   };
 }
 
+exports.ACCEPTED_BRANDS_LABEL = ACCEPTED_BRANDS_LABEL;
+exports.BRAND_LENGTHS = BRAND_LENGTHS;
 exports.COUNTRIES = COUNTRIES;
 exports.DEFAULT_API_PATHS = DEFAULT_API_PATHS;
 exports.DEFAULT_THEME = DEFAULT_THEME;
@@ -313,6 +332,7 @@ exports.assertBrandIsolation = assertBrandIsolation;
 exports.cardBrandLabel = cardBrandLabel;
 exports.createConfirmationId = createConfirmationId;
 exports.createServerPaymentConfig = createServerPaymentConfig;
+exports.cvvLength = cvvLength;
 exports.definePaymentConfig = definePaymentConfig;
 exports.detectCardBrand = detectCardBrand;
 exports.formatBinIssuer = formatBinIssuer;

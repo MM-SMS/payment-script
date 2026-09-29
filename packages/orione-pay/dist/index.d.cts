@@ -25,9 +25,14 @@ declare function createConfirmationId(brandId: string): string;
 declare function luhnCheck(cardNumber: string): boolean;
 declare function detectCardBrand(cardNumber: string): CardBrand;
 declare function cardBrandLabel(brand: CardBrand): string;
+declare const ACCEPTED_BRANDS_LABEL = "Visa, Mastercard, American Express, Discover, Diners Club, JCB and UnionPay";
+/** PAN lengths each scheme actually issues (ISO/IEC 7812 allows 8–19; 19 is real for Visa, Discover, JCB, UnionPay, Diners). */
+declare const BRAND_LENGTHS: Record<Exclude<CardBrand, "unknown">, number[]>;
 declare function validateCardNumber(cardNumber: string): string | undefined;
+/** American Express prints a 4-digit code on the front; every other scheme uses 3. */
+declare function cvvLength(brand: CardBrand): 3 | 4;
 declare function validateExpiry(expiry: string, now?: Date): string | undefined;
-declare function validateCvv(cvv: string): string | undefined;
+declare function validateCvv(cvv: string, brand?: CardBrand): string | undefined;
 declare function validateCardholderName(name: string): string | undefined;
 declare function parseExpiry(expiry: string): {
     month: string;
@@ -57,4 +62,4 @@ declare function toCardSummary(values: CheckoutFormValues): {
     expiryYear: string;
 };
 
-export { COUNTRIES, CardBrand, type CheckoutFormValues, type CountryOption, CreatePaymentConfigInput, FieldErrors, PaymentFlow, Product, PublicPaymentConfig, ServerPaymentConfig, assertBrandIsolation, cardBrandLabel, createConfirmationId, createServerPaymentConfig, definePaymentConfig, detectCardBrand, formatCardNumber, formatExpiry, formatMoney, getProduct, hasFieldErrors, luhnCheck, onlyDigits, parseExpiry, requireProduct, resolvePaymentFlow, toCardSummary, toPublicPaymentConfig, validateAddress, validateCardNumber, validateCardholderName, validateCheckoutForm, validateCountry, validateCvv, validateEmail, validateExpiry, validatePostalCode };
+export { ACCEPTED_BRANDS_LABEL, BRAND_LENGTHS, COUNTRIES, CardBrand, type CheckoutFormValues, type CountryOption, CreatePaymentConfigInput, FieldErrors, PaymentFlow, Product, PublicPaymentConfig, ServerPaymentConfig, assertBrandIsolation, cardBrandLabel, createConfirmationId, createServerPaymentConfig, cvvLength, definePaymentConfig, detectCardBrand, formatCardNumber, formatExpiry, formatMoney, getProduct, hasFieldErrors, luhnCheck, onlyDigits, parseExpiry, requireProduct, resolvePaymentFlow, toCardSummary, toPublicPaymentConfig, validateAddress, validateCardNumber, validateCardholderName, validateCheckoutForm, validateCountry, validateCvv, validateEmail, validateExpiry, validatePostalCode };

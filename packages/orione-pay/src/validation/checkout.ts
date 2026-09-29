@@ -49,7 +49,7 @@ export function validateCheckoutForm(values: CheckoutFormValues): FieldErrors {
     email: validateEmail(values.email),
     cardNumber: validateCardNumber(values.cardNumber),
     expiry: validateExpiry(values.expiry),
-    cvv: validateCvv(values.cvv),
+    cvv: validateCvv(values.cvv, detectCardBrand(values.cardNumber)),
     cardholderName: validateCardholderName(values.cardholderName),
     country: validateCountry(values.country),
     address: validateAddress(values.address),

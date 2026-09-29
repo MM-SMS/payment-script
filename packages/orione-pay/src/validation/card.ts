@@ -47,12 +47,34 @@ export function cardBrandLabel(brand: CardBrand): string {
   return labels[brand];
 }
 
+export const ACCEPTED_BRANDS_LABEL =
+  "Visa, Mastercard, American Express, Discover, Diners Club, JCB and UnionPay";
+
+/** PAN lengths each scheme actually issues (ISO/IEC 7812 allows 8–19; 19 is real for Visa, Discover, JCB, UnionPay, Diners). */
+export const BRAND_LENGTHS: Record<Exclude<CardBrand, "unknown">, number[]> = {
+  visa: [13, 16, 19],
+  mastercard: [16],
+  amex: [15],
+  discover: [16, 17, 18, 19],
+  diners: [14, 15, 16, 17, 18, 19],
+  jcb: [16, 17, 18, 19],
+  unionpay: [16, 17, 18, 19],
+};
+
 export function validateCardNumber(cardNumber: string): string | undefined {
   const digits = cardNumber.replace(/\D/g, "");
   if (!digits) return "Enter a card number";
   if (digits.length < 13) return "Card number is too short";
+  const brand = detectCardBrand(digits);
+  if (brand === "unknown") return `This card type is not supported. We accept ${ACCEPTED_BRANDS_LABEL}.`;
+  if (!BRAND_LENGTHS[brand].includes(digits.length)) return `A ${cardBrandLabel(brand)} number has ${BRAND_LENGTHS[brand].join(", ").replace(/, (\d+)$/, " or $1")} digits`;
   if (!luhnCheck(digits)) return "Card number is invalid";
   return undefined;
+}
+
+/** American Express prints a 4-digit code on the front; every other scheme uses 3. */
+export function cvvLength(brand: CardBrand): 3 | 4 {
+  return brand === "amex" ? 4 : 3;
 }
 
 export function validateExpiry(expiry: string, now = new Date()): string | undefined {
@@ -68,8 +90,9 @@ export function validateExpiry(expiry: string, now = new Date()): string | undef
   return undefined;
 }
 
-export function validateCvv(cvv: string): string | undefined {
-  if (!/^\d{3}$/.test(cvv)) return "CVV must be 3 digits";
+export function validateCvv(cvv: string, brand: CardBrand = "unknown"): string | undefined {
+  const length = cvvLength(brand);
+  if (!new RegExp(`^\\d{${length}}$`).test(cvv)) return `CVV must be ${length} digits`;
   return undefined;
 }
 

@@ -183,12 +183,28 @@ function cardBrandLabel(brand) {
   };
   return labels[brand];
 }
+var ACCEPTED_BRANDS_LABEL = "Visa, Mastercard, American Express, Discover, Diners Club, JCB and UnionPay";
+var BRAND_LENGTHS = {
+  visa: [13, 16, 19],
+  mastercard: [16],
+  amex: [15],
+  discover: [16, 17, 18, 19],
+  diners: [14, 15, 16, 17, 18, 19],
+  jcb: [16, 17, 18, 19],
+  unionpay: [16, 17, 18, 19]
+};
 function validateCardNumber(cardNumber) {
   const digits = cardNumber.replace(/\D/g, "");
   if (!digits) return "Enter a card number";
   if (digits.length < 13) return "Card number is too short";
+  const brand = detectCardBrand(digits);
+  if (brand === "unknown") return `This card type is not supported. We accept ${ACCEPTED_BRANDS_LABEL}.`;
+  if (!BRAND_LENGTHS[brand].includes(digits.length)) return `A ${cardBrandLabel(brand)} number has ${BRAND_LENGTHS[brand].join(", ").replace(/, (\d+)$/, " or $1")} digits`;
   if (!luhnCheck(digits)) return "Card number is invalid";
   return void 0;
+}
+function cvvLength(brand) {
+  return brand === "amex" ? 4 : 3;
 }
 function validateExpiry(expiry, now = /* @__PURE__ */ new Date()) {
   const match = expiry.replace(/\s/g, "").match(/^(\d{2})\/(\d{2})$/);
@@ -200,8 +216,9 @@ function validateExpiry(expiry, now = /* @__PURE__ */ new Date()) {
   if (expiryDate < now) return "Card has expired";
   return void 0;
 }
-function validateCvv(cvv) {
-  if (!/^\d{3}$/.test(cvv)) return "CVV must be 3 digits";
+function validateCvv(cvv, brand = "unknown") {
+  const length = cvvLength(brand);
+  if (!new RegExp(`^\\d{${length}}$`).test(cvv)) return `CVV must be ${length} digits`;
   return void 0;
 }
 function validateCardholderName(name) {
@@ -262,7 +279,7 @@ function CardFields({
     onChange("expiry", formatExpiry(event.target.value));
   }
   function handleCvv(event) {
-    onChange("cvv", onlyDigits(event.target.value, 3));
+    onChange("cvv", onlyDigits(event.target.value, cvvLength(brand)));
   }
   return /* @__PURE__ */ jsxs("fieldset", { className: "op-fieldset", disabled, children: [
     /* @__PURE__ */ jsx("legend", { children: "Payment" }),
@@ -275,7 +292,7 @@ function CardFields({
             name: "cardNumber",
             inputMode: "numeric",
             autoComplete: "cc-number",
-            placeholder: "ACCT-000015",
+            placeholder: "1234 5678 9012 3456",
             value: cardNumber,
             onChange: handleCardNumber,
             "aria-invalid": Boolean(errors.cardNumber)
@@ -311,7 +328,7 @@ function CardFields({
             name: "cvv",
             inputMode: "numeric",
             autoComplete: "cc-csc",
-            placeholder: "123",
+            placeholder: brand === "amex" ? "1234" : "123",
             value: cvv,
             onChange: handleCvv,
             "aria-invalid": Boolean(errors.cvv)
@@ -401,7 +418,7 @@ function validateCheckoutForm(values) {
     email: validateEmail(values.email),
     cardNumber: validateCardNumber(values.cardNumber),
     expiry: validateExpiry(values.expiry),
-    cvv: validateCvv(values.cvv),
+    cvv: validateCvv(values.cvv, detectCardBrand(values.cardNumber)),
     cardholderName: validateCardholderName(values.cardholderName),
     country: validateCountry(values.country),
     address: validateAddress(values.address),

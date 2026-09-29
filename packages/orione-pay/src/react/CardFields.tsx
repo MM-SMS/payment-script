@@ -3,7 +3,7 @@
 import type { ChangeEvent } from "react";
 import { formatBinIssuer } from "../bin";
 import { formatCardNumber, formatExpiry, onlyDigits } from "../format";
-import { cardBrandLabel, detectCardBrand } from "../validation/card";
+import { cardBrandLabel, cvvLength, detectCardBrand } from "../validation/card";
 import type { FieldErrors } from "../types";
 import { usePaymentConfig } from "./context";
 import { useBinLookup } from "./useBinLookup";
@@ -42,7 +42,7 @@ export function CardFields({
   }
 
   function handleCvv(event: ChangeEvent<HTMLInputElement>) {
-    onChange("cvv", onlyDigits(event.target.value, 3));
+    onChange("cvv", onlyDigits(event.target.value, cvvLength(brand)));
   }
 
   return (
@@ -55,7 +55,7 @@ export function CardFields({
             name="cardNumber"
             inputMode="numeric"
             autoComplete="cc-number"
-            placeholder="ACCT-000015"
+            placeholder="1234 5678 9012 3456"
             value={cardNumber}
             onChange={handleCardNumber}
             aria-invalid={Boolean(errors.cardNumber)}
@@ -90,7 +90,7 @@ export function CardFields({
             name="cvv"
             inputMode="numeric"
             autoComplete="cc-csc"
-            placeholder="123"
+            placeholder={brand === "amex" ? "1234" : "123"}
             value={cvv}
             onChange={handleCvv}
             aria-invalid={Boolean(errors.cvv)}
